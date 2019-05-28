@@ -1,0 +1,13 @@
+---
+  pkgs:
+    - gcc
+    - git
+    - python-virtualenv
+
+  pip_executable: pip
+
+  hpfeeds_output_dir: /opt
+
+  hpfeeds_repo: https://github.com/CommunityHoneyNetwork/hpfeeds.git
+  hpfeeds_version: master
+  hpfeeds_dir: /srv

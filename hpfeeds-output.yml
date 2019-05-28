@@ -1,0 +1,82 @@
+---
+  - hosts: all
+
+    tasks:
+      - name: Gather | print os info
+        debug:
+          msg: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}"
+
+      - name: Gather | os info
+        include_vars: "{{ item }}"
+        with_first_found:
+          - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+          - "{{ ansible_distribution }}.yml"
+
+      - name: Gather | default info
+        include_vars:
+          file: default.yml
+        tags: vars
+
+      - name: hpfeeds-output | install dependency packages
+        package:
+          name: "{{ item }}"
+        with_items: "{{ pkgs }}"
+
+      - name: hpfeeds-output | install os-specific dependency packages
+        package:
+          name: "{{ item }}"
+        with_items: "{{ pkgs_osspec }}"
+
+      - name: hpfeeds-cif | update setuptools
+        pip:
+          name: setuptools
+          state: latest
+          executable: pip
+        tags:
+          - skip_ansible_lint
+
+      - name: hpfeeds-output | install python requirements
+        pip:
+          requirements: "{{ hpfeeds_output_dir }}/hpfeeds-output/requirements.txt"
+          executable: pip
+
+      - name: hpfeeds-output | clone hpfeeds for utils
+        git:
+          repo: "{{ hpfeeds_repo }}"
+          version: "{{ hpfeeds_version }}"
+          dest: "{{ hpfeeds_dir }}"
+          accept_hostkey: yes
+          depth: 1
+
+      - name: hpfeeds-output | link to hpfeeds in hpfeeds-cif
+        file:
+          state: link
+          src: "{{ hpfeeds_dir }}/hpfeeds/lib/hpfeeds.py"
+          dest: "{{ hpfeeds_output_dir }}/hpfeeds-output/hpfeeds.py"
+
+
+      - name: hpfeeds-output | copy sysconfig file
+        copy:
+          src: hpfeeds-output.sysconfig
+          dest: "{{ sysconfig_dir }}/hpfeeds-output"
+          mode: 0644
+
+      - name: hpfeeds-output | install Runit
+        yum:
+          name: "{{ runit_rpm_src }}"
+          state: present
+        when: ansible_distribution|lower == 'centos'
+
+      - name: hpfeeds-output | create runit service dirs
+        file:
+          path: /etc/service/hpfeeds-output
+          state: directory
+          mode: 0755
+
+      - name: hpfeeds-output | copy runit runfile
+        template:
+          src: hpfeeds-output.run.j2
+          dest: /etc/service/hpfeeds-output/run
+          owner: root
+          group: root
+          mode: 0755

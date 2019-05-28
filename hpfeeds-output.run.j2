@@ -1,0 +1,87 @@
+#!/bin/bash
+
+trap "exit 130" SIGINT
+trap "exit 137" SIGKILL
+trap "exit 143" SIGTERM
+
+source {{ sysconfig_dir }}/hpfeeds-output
+
+cd {{ hpfeeds_output_dir }}
+if [[ ! -f ./hpfeeds-output.cfg ]]
+then
+
+    # Check if we pulled in a value from the sysconfig file, and if not set a sane default
+    HPFEEDS_HOST=${HPFEEDS_HOST:-'hpfeeds'}
+    HPFEEDS_PORT=${HPFEEDS_PORT:-10000}
+    IDENT=${IDENT:-'hpfeeds-output'}
+    SECRET=${SECRET:-`python -c 'import uuid;print str(uuid.uuid4()).replace("-","")'`}
+    CHANNELS=${CHANNELS:-'amun.events,conpot.events,thug.events,beeswarm.hive,dionaea.capture,dionaea.connections,thug.files,beeswarn.feeder,cuckoo.analysis,kippo.sessions,cowrie.sessions,glastopf.events,glastopf.files,mwbinary.dionaea.sensorunique,snort.alerts,wordpot.events,p0f.events,suricata.events,shockpot.events,elastichoney.events,rdphoney.sessions,uhp.events'}
+    FORMATTER_NAME=${FORMATTER_NAME:-'splunk'}
+    FILELOG_ENABLED=${FILELOG_ENABLED:-false}
+    LOG_FILE=${LOG_FILE:-'/var/log/hpfeeds-output/chn-splunk.log'}
+
+    SYSLOG_ENABLED=${SYSLOG_ENABLED:-false}
+    SYSLOG_HOST=${SYSLOG_HOST:-'localhost'}
+    SYSLOG_PORT=${SYSLOG_PORT:-514}
+    SYSLOG_FACILITY=${SYSLOG_FACILITY:-"USER"}
+
+    MONGODB_HOST=${MONGODB_HOST:-'mongodb'}
+    MONGODB_PORT=${MONGODB_PORT:-27017}
+
+    # copy the example output.json.example file and edit in our variables
+    cp {{ hpfeeds_output_dir }}/hpfeeds-output/output.json.example {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s/\"host\": \"localhost\"/\"host\": \"${HPFEEDS_HOST}\"/g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s/\"port\": 10000/\"port\": ${HPFEEDS_PORT}/g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s/\"ident\": \"hpfeeds-output\"/\"ident\": \"${IDENT}\"/g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s/\"secret\": \"\"/\"secret\": \"${SECRET}\"/g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s/\"formatter_name\": \"splunk\"/\"formatter_name\": \"${FORMATTER_NAME}\"/g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+
+    sed -i "s|\"filelog_enabled\": true|\"filelog_enabled\": ${FILELOG_ENABLED}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"log_file\": \"mhn-splunk-log.out\"|\"log_file\": \"${LOG_FILE}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+
+    sed -i "s|\"syslog_enabled\": false|\"syslog_enabled\": ${SYSLOG_ENABLED}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"syslog_host\": \"localhost\"|\"syslog_host\": \"${SYSLOG_HOST}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"syslog_port\": 514|\"syslog_port\": ${SYSLOG_PORT}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"syslog_facility\": \"user\"|\"syslog_facility\": \"${SYSLOG_FACILITY}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+
+    sed -i "s|\"cif_enabled\": false|\"cif_enabled\": ${CIF_ENABLED}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_host\": \"http://cifv3\"|\"cif_host\": \"${CIF_HOST}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_token\": \"token\"|\"cif_token\": \"${CIF_TOKEN}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_provider\": \"provider\"|\"cif_provider\": \"${CIF_PROVIDER}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_tlp\": \"amber\"|\"cif_tlp\": \"${CIF_TLP}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_confidence\": 8|\"cif_confidence\": ${CIF_CONFIDENCE}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_tags\": \"tags\"|\"cif_tags\": \"${CIF_TAGS}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_group\": \"group\"|\"cif_group\": \"${CIF_GROUP}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"cif_verify_ssl\": false|\"cif_verify_ssl\": ${CIF_VERIFY_SSL}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+
+    sed -i "s|\"bhr_enabled\": false|\"bhr_enabled\": ${BHR_ENABLED}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"bhr_host\": \"http://bhr\"|\"bhr_host\": \"${BHR_host}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"bhr_token\": \"token\"|\"bhr_token\": \"${BHR_TOKEN}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"bhr_source\": \"chn\"|\"bhr_source\": \"${BHR_SOURCE}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"bhr_reason\": \"honeypot block\"|\"bhr_reason\": \"${BHR_REASON}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"bhr_duration\": 3600|\"bhr_duration\": ${BHR_DURATION}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"bhr_verify_ssl\": false|\"bhr_verify_ssl\": ${BHR_VERIFY_SSL}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+
+
+
+    # Please forgive me for this code
+    OLD_IFS=${IFS}
+    IFS='|'
+    OUR_TEXT=`echo ${CHANNELS} | sed -e 's/^/\\\"/' -e 's/$/\\\"/' -e 's/,/\\\",\\\"/g' | tr ',' '\n' | sed -e 's/$/,/' -e '$s/,$//' -e 's/^/\\t/'`
+
+    # Please also forgive me for using perl
+    perl -i -p -000 -e "s/CHANNEL_VAR/${OUR_TEXT}/" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+
+    IFS=${OLD_IFS}
+
+    # Generate config file for hpfeeds broker and register
+    cd {{ hpfeeds_dir }}/hpfeeds/broker/
+    python {{ hpfeeds_dir }}/hpfeeds/broker/generateconfig.py unattended --mongo_host ${MONGODB_HOST} --mongo_port ${MONGODB_PORT}
+    python {{ hpfeeds_dir }}/hpfeeds/broker/add_user.py "$IDENT" "$SECRET" "" "$CHANNELS"
+fi
+
+cd {{ hpfeeds_output_dir}}/hpfeeds-output/
+echo "Starting hpfeeds-output..."
+
+export PYTHONPATH={{ hpfeeds_output_dir }}/hpfeeds-output
+exec python {{ hpfeeds_output_dir }}/hpfeeds-output/bin/hpfeeds-output.py {{ hpfeeds_output_dir }}/hpfeeds-output/output.json

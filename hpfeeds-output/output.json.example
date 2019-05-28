@@ -1,0 +1,40 @@
+{
+    "host": "localhost",
+    "port": 10000,
+    "ident": "hpfeeds-output",
+    "secret": "",
+    "channels": [
+CHANNEL_VAR
+    ],
+    "filelog": {
+        "filelog_enabled": true,
+        "log_file": "mhn-splunk-log.out"
+    },
+    "syslog": {
+        "syslog_enabled": false,
+        "syslog_host": "localhost",
+        "syslog_port": 514,
+        "syslog_facility": "user"
+    },
+    "cif": {
+        "cif_enabled": false,
+        "cif_host": "http://cifv3",
+        "cif_token": "token",
+        "cif_provider": "provider",
+        "cif_tlp": "amber",
+        "cif_confidence": 8,
+        "cif_tags": "tags",
+        "cif_group": "group",
+        "cif_verify_ssl": false
+    },
+    "bhr": {
+        "bhr_enabled": false,
+        "bhr_host": "http://bhr",
+        "bhr_token": "token",
+        "bhr_source": "chn",
+        "bhr_reason": "honeypot block",
+        "bhr_duration": 3600,
+        "bhr_verify_ssl": false
+    },
+    "formatter_name": "splunk"
+}

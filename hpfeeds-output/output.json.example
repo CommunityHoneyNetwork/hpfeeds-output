@@ -8,7 +8,12 @@ CHANNEL_VAR
     ],
     "filelog": {
         "filelog_enabled": true,
-        "log_file": "mhn-splunk-log.out"
+        "log_file": "mhn-splunk-log.out",
+        "rotation_strategy": "size",
+        "rotation_size_max": "100",
+        "rotation_time_max": "24",
+        "rotation_time_unit": "h",
+        "rotation_backups": "3"
     },
     "syslog": {
         "syslog_enabled": false,

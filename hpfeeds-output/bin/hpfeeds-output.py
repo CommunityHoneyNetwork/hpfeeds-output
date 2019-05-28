@@ -4,7 +4,8 @@ import json
 import hpfeeds
 import sys
 import logging
-from logging.handlers import RotatingFileHandler, SysLogHandler
+from logging.handlers import RotatingFileHandler, SysLogHandler, \
+    TimedRotatingFileHandler, WatchedFileHandler
 from hpfeeds_output.handlers import cif_handler, bhr_handler
 from hpfeeds_output.formatters import splunk, arcsight, json_formatter, raw_json
 from hpfeeds_output import processors
@@ -51,7 +52,31 @@ def main():
     try:
         if config['filelog'] and config['filelog']['filelog_enabled']:
             logfile = config['filelog']['log_file']
-            handler = RotatingFileHandler(logfile, maxBytes=100 * 1024 * 1024, backupCount=3)
+
+            if config['filelog']['rotation_backups']:
+                backups = int(config['filelog']['rotation_backups'])
+            else:
+                backups = 3
+
+            if config['filelog']['rotation_strategy'] == 'size':
+                max_byt = int(config['filelog']['rotation_size_max']) * 1024 * 1024
+                handler = RotatingFileHandler(logfile, maxBytes=max_byt, backupCount=backups)
+            elif config['filelog']['rotation_strategy'] == 'time':
+                rotation_interval = int(config['filelog']['rotation_time_max'])
+                if config['filelog']['rotation_time_unit'] and \
+                    config['filelog']['rotation_time_unit'].lower() in ['d', 'h', 'm']:
+                    rotation_unit = config['filelog']['rotation_time_unit'].lower()
+                else:
+                    rotation_unit = 'h'
+                    logger.warning('Could not interpret rotation_time_unit; defaulting to hour (h)')
+                handler = TimedRotatingFileHandler(logfile, when=rotation_unit,
+                                                        interval=rotation_interval, backupCount=backups)
+            elif config['filelog']['rotation_strategy'] == 'none':
+                handler = WatchedFileHandler(logfile, mode='a')
+            else:
+                logger.warning('Invalid rotation_strategy! Defaulting to 100 MB size rotation!')
+                handler = RotatingFileHandler(logfile, maxBytes=104857600, backupCount=backups)
+
             handler.setFormatter(splunk.SplunkFormatter())
             data_logger.addHandler(handler)
             logger.info('Writing events to %s', logfile)

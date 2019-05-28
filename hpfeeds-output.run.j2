@@ -28,6 +28,11 @@ then
     MONGODB_HOST=${MONGODB_HOST:-'mongodb'}
     MONGODB_PORT=${MONGODB_PORT:-27017}
 
+    ROTATION_STRATEGY=${ROTATION_STRATEGY:-'size'}
+    ROTATION_SIZE_MAX=${ROTATION_SIZE_MAX:-100}
+    ROTATION_TIME_MAX=${ROTATION_TIME_MAX:-24}
+    ROTATION_TIME_UNIT=${ROTATION_TIME_UNIT:-'h'}
+
     # copy the example output.json.example file and edit in our variables
     cp {{ hpfeeds_output_dir }}/hpfeeds-output/output.json.example {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
     sed -i "s/\"host\": \"localhost\"/\"host\": \"${HPFEEDS_HOST}\"/g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
@@ -38,6 +43,11 @@ then
 
     sed -i "s|\"filelog_enabled\": true|\"filelog_enabled\": ${FILELOG_ENABLED}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
     sed -i "s|\"log_file\": \"mhn-splunk-log.out\"|\"log_file\": \"${LOG_FILE}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"rotation_strategy\": \"size\"|\"rotation_strategy\": \"${ROTATION_STRATEGY}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"rotation_size_max\": \"100\"|\"rotation_size_max\": \"${ROTATION_SIZE_MAX}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"rotation_time_max\": \"24\"|\"rotation_time_max\": \"${ROTATION_TIME_MAX}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"rotation_time_unit\": \"h\"|\"rotation_time_unit\": \"${ROTATION_TIME_UNIT}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
+    sed -i "s|\"rotation_backups\": \"3\"|\"rotation_backups\": \"${ROTATION_BACKUPS}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
 
     sed -i "s|\"syslog_enabled\": false|\"syslog_enabled\": ${SYSLOG_ENABLED}|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json
     sed -i "s|\"syslog_host\": \"localhost\"|\"syslog_host\": \"${SYSLOG_HOST}\"|g" {{ hpfeeds_output_dir }}/hpfeeds-output/output.json

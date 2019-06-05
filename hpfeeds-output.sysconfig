@@ -1,8 +1,6 @@
-# This file is read from /etc/sysconfig/hpfeeds-logger
-# or /etc/default/hpfeeds-logger, depending on the distro version
+# This file is read from /etc/default/hpfeeds-output
 #
-# Defaults here are for containers, but can be adjusted
-# after install for a regular server or to customize the containers
+# This can be modified to change the default setup of the unattended installation
 
 MONGODB_HOST="mongodb"
 MONGODB_PORT=27017
@@ -11,7 +9,7 @@ MONGODB_PORT=27017
 # location is controlled by volume mapping in the docker-compose.yml
 FILELOG_ENABLED="true"
 
-LOG_FILE="/var/log/hpfeeds-logger/chn-splunk.log"
+LOG_FILE="/var/log/hpfeeds-output/chn-splunk.log"
 
 # Options are arcsight, json, raw_json, splunk
 FORMATTER_NAME=splunk

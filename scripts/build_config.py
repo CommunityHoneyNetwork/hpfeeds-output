@@ -45,6 +45,7 @@ def main():
     CIF_CONFIDENCE=os.environ.get("CIF_CONFIDENCE", "")
     CIF_TAGS=os.environ.get("CIF_TAGS", "")
     CIF_GROUP=os.environ.get("CIF_GROUP", "")
+    CIF_IGNORE_CIDR=os.environ.get("CIF_IGNORE_CIDR","192.168.0.0/16,10.0.0.0/8,172.16.0.0/12")
     CIF_VERIFY_SSL=os.environ.get("CIF_VERIFY_SSL", "")
 
     BHR_ENABLED=os.environ.get("BHR_ENABLED", "false")
@@ -53,6 +54,7 @@ def main():
     BHR_SOURCE=os.environ.get("BHR_SOURCE", "")
     BHR_REASON=os.environ.get("BHR_REASON", "")
     BHR_DURATION=os.environ.get("BHR_DURATION", "")
+    BHR_IGNORE_CIDR=os.environ.get("BHR_IGNORE_CIDR","192.168.0.0/16,10.0.0.0/8,172.16.0.0/12")
     BHR_VERIFY_SSL=os.environ.get("BHR_VERIFY_SSL", "")
 
 
@@ -97,6 +99,7 @@ def main():
     config['cif']['cif_confidence'] = CIF_CONFIDENCE
     config['cif']['cif_tags'] = CIF_TAGS
     config['cif']['cif_group'] = CIF_GROUP
+    config['cif']['cif_ignore_cidr'] = CIF_IGNORE_CIDR
     config['cif']['cif_verify_ssl'] = get_bool(CIF_VERIFY_SSL)
 
     config['bhr']['bhr_enabled'] = get_bool(BHR_ENABLED)
@@ -105,6 +108,7 @@ def main():
     config['bhr']['bhr_source'] = BHR_SOURCE
     config['bhr']['bhr_reason'] = BHR_REASON
     config['bhr']['bhr_duration'] = BHR_DURATION
+    config['bhr']['bhr_ignore_cidr'] = BHR_IGNORE_CIDR
     config['bhr']['bhr_verify_ssl'] = get_bool(BHR_VERIFY_SSL)
 
     print("Writing config...")

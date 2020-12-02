@@ -4,12 +4,12 @@ import json
 import hpfeeds
 import sys
 import logging
-from logging.handlers import RotatingFileHandler, SysLogHandler, \
-    TimedRotatingFileHandler, WatchedFileHandler
+from IPy import IP
+from logging.handlers import RotatingFileHandler, SysLogHandler, TimedRotatingFileHandler, WatchedFileHandler
 from hpfeeds_output.handlers import cif_handler, bhr_handler
 from hpfeeds_output.formatters import splunk, arcsight, json_formatter, raw_json
 from hpfeeds_output import processors
-
+from hpfeeds_output import redis_cache
 
 FORMATTERS = {
     'splunk': splunk.SplunkFormatter,
@@ -20,10 +20,25 @@ FORMATTERS = {
 
 log_handler = logging.StreamHandler()
 log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger = logging.getLogger('logger')
+logger = logging.getLogger('hpfeeds-output')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(log_handler)
 
+def parse_ignore_cidr_option(cidrlist):
+    """
+    Given a comma-seperated list of CIDR addresses, split them and validate they're valid CIDR notation
+    :param cidrlist: string representing a comma seperated list of CIDR addresses
+    :return: a list containing IPy.IP objects representing the ignore_cidr addresses
+    """
+    l = list()
+    for c in cidrlist.split(','):
+        try:
+            s = c.strip(' ')
+            i = IP(s)
+            l.append(i)
+        except ValueError as e:
+            logger.warning('Received invalid CIDR in ignore_cidr: {}'.format(e))
+    return l
 
 def main():
     if len(sys.argv) < 2:
@@ -101,6 +116,8 @@ def main():
     else:
         try:
             if config['cif'] and config['cif']['cif_enabled']:
+                cif_ignore_list = parse_ignore_cidr_option(config['cif']['cif_ignore_cidr'])
+                cif_rcache = redis_cache.RedisCache(host='redis', port=6379, db=4, expire=300)
                 cif_host = config['cif']['cif_host']
                 cif_token = config['cif']['cif_token']
                 cif_provider = config['cif']['cif_provider']
@@ -111,7 +128,8 @@ def main():
                 cif_verify_ssl = config['cif']['cif_verify_ssl']
                 handler = cif_handler.CIFv3Handler(host=cif_host, token=cif_token, provider=cif_provider,
                                                    tlp=cif_tlp, confidence=cif_confidence, tags=cif_tags,
-                                                   group=cif_group, ssl=cif_verify_ssl)
+                                                   group=cif_group, rcache=cif_rcache,
+                                                   ignore_cidr=cif_ignore_list, ssl=cif_verify_ssl)
                 data_logger.addHandler(handler)
                 logger.info('Writing CIFv3 events to %s' % cif_host)
         except:
@@ -119,6 +137,8 @@ def main():
 
         try:
             if config['bhr'] and config['bhr']['bhr_enabled']:
+                bhr_ignore_list = parse_ignore_cidr_option(config['bhr']['bhr_ignore_cidr'])
+                bhr_rcache = redis_cache.RedisCache(host='redis', port=6379, db=5, expire=300)
                 bhr_host = config['bhr']['bhr_host']
                 bhr_token = config['bhr']['bhr_token']
                 bhr_source = config['bhr']['bhr_source']
@@ -126,7 +146,8 @@ def main():
                 bhr_duration = config['bhr']['bhr_duration']
                 bhr_verify_ssl = config['bhr']['bhr_verify_ssl']
                 handler = bhr_handler.BHRHandler(host=bhr_host, token=bhr_token, source=bhr_source, reason=bhr_reason,
-                                                 duration=bhr_duration, ssl=bhr_verify_ssl)
+                                                 duration=bhr_duration, rcache=bhr_rcache, ignore_cidr=bhr_ignore_list,
+                                                 ssl=bhr_verify_ssl)
                 data_logger.addHandler(handler)
                 logger.info('Writing BHR events to %s' % bhr_host)
         except:

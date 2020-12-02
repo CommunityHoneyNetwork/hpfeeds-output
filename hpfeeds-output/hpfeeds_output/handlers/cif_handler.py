@@ -5,6 +5,9 @@ from datetime import datetime
 from logging import StreamHandler
 
 
+#TODO: Add support for IGNORE_CIDR
+#TODO: Add support for Redis caching
+
 class CIFv3Handler(StreamHandler):
 
     def __init__(self, host, token, tlp, confidence, tags, provider, group, ssl, include_hp_tags=False):

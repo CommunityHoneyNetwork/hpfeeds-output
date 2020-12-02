@@ -31,8 +31,8 @@ def main():
         return 1
 
     logger.info('Parsing config file: %s', sys.argv[1])
-
-    config = json.load(file(sys.argv[1]))
+    with open(sys.argv[1]) as f:
+        config = json.load(f)
     host = config['host']
     port = config['port']
     # hpfeeds protocol has trouble with unicode, hence the utf-8 encoding here
@@ -76,7 +76,7 @@ def main():
             else:
                 logger.warning('Invalid rotation_strategy! Defaulting to 100 MB size rotation!')
                 handler = RotatingFileHandler(logfile, maxBytes=104857600, backupCount=backups)
-
+            #TODO: handle multiple formatter formats
             handler.setFormatter(splunk.SplunkFormatter())
             data_logger.addHandler(handler)
             logger.info('Writing events to %s', logfile)
@@ -97,7 +97,7 @@ def main():
 
     # BHR / CIFv3 submissions not supported with raw json logs
     if config['formatter_name'] == "raw_json":
-        logging.warning("CIFv3 and BHR submissions not supported with raw JSON logs.")
+        logging.warning("CIFv3 and BHR submissions not supported with raw JSON logs. Ignoring CIFv3 and BHR options")
     else:
         try:
             if config['cif'] and config['cif']['cif_enabled']:
@@ -135,7 +135,7 @@ def main():
     try:
         hpc = hpfeeds.new(host, port, ident, secret)
     except hpfeeds.FeedException as e:
-        logger.error('feed exception', e)
+        logger.error('hpfeed exception: {}'.format(e))
         return 1
 
     logger.info('connected to %s', hpc.brokername)

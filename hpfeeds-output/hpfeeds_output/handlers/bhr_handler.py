@@ -3,6 +3,8 @@ import requests
 import logging
 from logging import StreamHandler
 
+#TODO: Add support for IGNORE_CIDR
+#TODO: Add support for Redis caching
 
 class BHRHandler(StreamHandler):
 

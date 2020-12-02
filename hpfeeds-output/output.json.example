@@ -3,9 +3,7 @@
     "port": 10000,
     "ident": "hpfeeds-output",
     "secret": "",
-    "channels": [
-CHANNEL_VAR
-    ],
+    "channels": [],
     "filelog": {
         "filelog_enabled": true,
         "log_file": "mhn-splunk-log.out",

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import datetime
+#TODO: Convert to a logging.Formatter subclass
 
 def format(message):
     tmpmsg = dict(message)

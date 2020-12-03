@@ -264,8 +264,8 @@ def kippo_cowrie_sessions(identifier, payload, name, channel):
     name_lower = name.lower()
     try:
         dec = ezdict(json.loads(str(payload)))
-    except:
-        logger.warning('exception processing %s event' % name_lower)
+    except Exception:
+        logger.warning('Exception processing {} event: {}'.format(name_lower))
         traceback.print_exc()
         return
 

@@ -5,18 +5,22 @@ import logging
 import json
 import time
 
+logger = logging.getLogger('__main__')
+
 class SplunkFormatter(logging.Formatter):
 
     def format(self, record):
 
-        outmsg = json.loads(record.msg)
+        msg = json.loads(record.msg)
+        outmsg = {}
+        logger.debug('Formatting message for Splunk: {}'.format(msg))
 
         timestamp = datetime.datetime.isoformat(datetime.datetime.utcnow())
         if time.tzname[0] == 'UTC':
             timestamp += 'Z'
         outmsg['timestamp'] = timestamp
 
-        for k, v in dict(record).items():
+        for k, v in dict(msg).items():
             if isinstance(v, bytes):
                 outmsg[k] = v.decode('utf8')
             else:

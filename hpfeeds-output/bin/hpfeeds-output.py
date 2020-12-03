@@ -18,10 +18,12 @@ FORMATTERS = {
     'raw_json': raw_json.format
 }
 
-log_handler = logging.StreamHandler()
-log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+LOG_FORMAT = '%(asctime)s - %(levelname)s - %(name)s[%(lineno)s][%(filename)s] - %(message)s'
+
 logger = logging.getLogger('hpfeeds-output')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+log_handler = logging.StreamHandler()
+log_handler.setFormatter(logging.Formatter(LOG_FORMAT))
 logger.addHandler(log_handler)
 
 def parse_ignore_cidr_option(cidrlist):
@@ -48,16 +50,24 @@ def main():
     logger.info('Parsing config file: %s', sys.argv[1])
     with open(sys.argv[1]) as f:
         config = json.load(f)
+
+    if config['debug'] == True:
+        logger.setLevel(logging.DEBUG)
+        logger.debug('Set logging to DEBUG')
+        logger.debug('Parsed config was: {}'.format(config))
+
     host = config['host']
     port = config['port']
     # hpfeeds protocol has trouble with unicode, hence the utf-8 encoding here
-    channels = [c.encode('utf-8') for c in config['channels']]
-    ident = config['ident'].encode('utf-8')
-    secret = config['secret'].encode('utf-8')
+    channels = config['channels']
+    ident = config['ident']
+    secret = config['secret']
 
     processor = processors.HpfeedsMessageProcessor()
-    formatter = FORMATTERS.get(config['formatter_name'])
-    if not formatter:
+    logger.debug('HPFeeds Processor: {}'.format(processor.__dict__))
+    try:
+        formatter = FORMATTERS.get(config['formatter_name'])
+    except Exception as e:
         logger.error('Unsupported data log formatter encountered: %s. Exiting.', config['formatter_name'])
         return 1
 
@@ -92,11 +102,13 @@ def main():
                 logger.warning('Invalid rotation_strategy! Defaulting to 100 MB size rotation!')
                 handler = RotatingFileHandler(logfile, maxBytes=104857600, backupCount=backups)
             #TODO: handle multiple formatter formats
-            handler.setFormatter(splunk.SplunkFormatter())
+            if config['formatter_name'] == 'splunk':
+                handler.setFormatter(splunk.SplunkFormatter())
             data_logger.addHandler(handler)
-            logger.info('Writing events to %s', logfile)
-    except Exception:
-        logger.error("Invalid file handler arguments")
+            logger.info('Writing events to file %s', logfile)
+            logger.debug('data_logger currently: {}'.format(data_logger.__dict__))
+    except Exception as e:
+        logger.error("Invalid file handler arguments: {}".format(e))
 
     try:
         if config['syslog'] and config['syslog']['syslog_enabled']:
@@ -106,7 +118,7 @@ def main():
             handler = SysLogHandler(address=(syslog_host, syslog_port), facility=syslog_facility)
             handler.setFormatter(splunk.SplunkFormatter())
             data_logger.addHandler(handler)
-            logger.info('Writing syslog events to %s', syslog_host)
+            logger.info('Writing events to syslog host %s', syslog_host)
     except Exception:
         logger.error('Invalid sysconfig arguments')
 
@@ -131,7 +143,7 @@ def main():
                                                    group=cif_group, rcache=cif_rcache,
                                                    ignore_cidr=cif_ignore_list, ssl=cif_verify_ssl)
                 data_logger.addHandler(handler)
-                logger.info('Writing CIFv3 events to %s' % cif_host)
+                logger.info('Writing events to CIFv3 host %s' % cif_host)
         except:
             logger.error("Invalid CIFv3 arguments")
 
@@ -149,23 +161,25 @@ def main():
                                                  duration=bhr_duration, rcache=bhr_rcache, ignore_cidr=bhr_ignore_list,
                                                  ssl=bhr_verify_ssl)
                 data_logger.addHandler(handler)
-                logger.info('Writing BHR events to %s' % bhr_host)
+                logger.info('Writing events to BHR host %s' % bhr_host)
         except:
             logger.error("Invalid BHR arguments")
 
     try:
-        hpc = hpfeeds.new(host, port, ident, secret)
+        hpc = hpfeeds.client.new(host, port, ident, secret)
     except hpfeeds.FeedException as e:
         logger.error('hpfeed exception: {}'.format(e))
         return 1
 
     logger.info('connected to %s', hpc.brokername)
+    logger.debug('HPC: {}'.format(hpc.__dict__))
 
     def on_message(identifier, channel, payload):
         if config['formatter_name'] == "raw_json":
-            data_logger.info(payload)
+            data_logger.info(payload.decode('utf8'))
         else:
-            for msg in processor.process(identifier, channel, payload, ignore_errors=True):
+            for msg in processor.process(identifier, channel, payload.decode('utf-8'), ignore_errors=True):
+                logger.debug('Message returned from procesor: {}'.format(msg))
                 data_logger.info(json.dumps(msg))
 
     def on_error(payload):

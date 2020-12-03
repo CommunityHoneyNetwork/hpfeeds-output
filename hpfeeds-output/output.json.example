@@ -4,6 +4,7 @@
     "ident": "hpfeeds-output",
     "secret": "",
     "channels": [],
+    "debug": "false",
     "filelog": {
         "filelog_enabled": true,
         "log_file": "mhn-splunk-log.out",

@@ -18,12 +18,16 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-COPY hpfeeds-output /opt/hpfeeds-output
-COPY entrypoint.sh /opt/entrypoint.sh
+COPY requirements.txt /opt/requirements.txt
 
 # hadolint ignore=DL3013
 RUN python3 -m pip install --upgrade pip setuptools wheel \
-  && python3 -m pip install -r /opt/hpfeeds-output/requirements.txt \
+  && python3 -m pip install -r /opt/requirements.txt \
   && python3 -m pip install git+https://github.com/CommunityHoneyNetwork/hpfeeds3.git
 
+COPY hpfeeds-output /opt/hpfeeds-output
+COPY scripts /opt/scripts
+COPY entrypoint.sh /opt/entrypoint.sh
+RUN mkdir /data
+ENV PYTHONPATH="/opt/hpfeeds-output"
 ENTRYPOINT ["/opt/entrypoint.sh"]

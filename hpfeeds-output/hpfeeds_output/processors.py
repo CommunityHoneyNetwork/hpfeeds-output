@@ -9,7 +9,7 @@ import GeoIP
 
 IPV6_REGEX = re.compile(r'::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
 
-logger = logging.getLogger('__main__')
+logger = logging.getLogger('hpfeeds-output')
 
 
 def computeHashes(data, record):

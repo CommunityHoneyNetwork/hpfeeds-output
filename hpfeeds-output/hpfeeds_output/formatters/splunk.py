@@ -1,11 +1,9 @@
-#!/usr/bin/python
-
 import datetime
 import logging
 import json
 import time
 
-logger = logging.getLogger('__main__')
+logger = logging.getLogger('hpfeeds-output')
 
 class SplunkFormatter(logging.Formatter):
 

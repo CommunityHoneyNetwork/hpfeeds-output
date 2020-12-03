@@ -50,11 +50,10 @@ def main():
     BHR_ENABLED=os.environ.get("BHR_ENABLED", "false")
     BHR_HOST=os.environ.get("BHR_HOST", "")
     BHR_TOKEN=os.environ.get("BHR_TOKEN", "")
-    BHR_SOURCE=os.environ.get("BHR_SOURCE", "")
-    BHR_REASON=os.environ.get("BHR_REASON", "")
-    BHR_DURATION=os.environ.get("BHR_DURATION", "")
+    BHR_SOURCE=os.environ.get("BHR_SOURCE", "chn")
+    BHR_DURATION=os.environ.get("BHR_DURATION", "3600")
     BHR_IGNORE_CIDR=os.environ.get("BHR_IGNORE_CIDR","192.168.0.0/16,10.0.0.0/8,172.16.0.0/12")
-    BHR_VERIFY_SSL=os.environ.get("BHR_VERIFY_SSL", "")
+    BHR_VERIFY_SSL=os.environ.get("BHR_VERIFY_SSL", "false")
 
 
     config_template = open("/opt/hpfeeds-output/output.json.example", 'r')
@@ -105,14 +104,13 @@ def main():
     config['bhr']['bhr_host'] = BHR_HOST
     config['bhr']['bhr_token'] = BHR_TOKEN
     config['bhr']['bhr_source'] = BHR_SOURCE
-    config['bhr']['bhr_reason'] = BHR_REASON
     config['bhr']['bhr_duration'] = BHR_DURATION
     config['bhr']['bhr_ignore_cidr'] = BHR_IGNORE_CIDR
     config['bhr']['bhr_verify_ssl'] = get_bool(BHR_VERIFY_SSL)
 
     print("Writing config...")
 
-    with open("/opt/hpfeeds-output/output.json", 'w') as config_file:
+    with open("/data/output.json", 'w') as config_file:
         config_file.write(json.dumps(config))
 
     create_user(host=MONGODB_HOST, port=int(MONGODB_PORT), owner="chn",

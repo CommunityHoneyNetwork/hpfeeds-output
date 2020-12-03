@@ -1,24 +1,19 @@
 import json
-import requests
 import logging
 from logging import StreamHandler
 from IPy import IP
 
-logger = logging.getLogger('__main__')
+logger = logging.getLogger('hpfeeds-output')
 
 class BHRHandler(StreamHandler):
 
-    def __init__(self, host, token, source, reason, duration, rcache, ignore_cidr, ssl):
+    def __init__(self, bhr, source, duration, rcache, ignore_cidr):
         StreamHandler.__init__(self)
-        self.url = host + "/api/block"
-        self.reason = reason
         self.source = source
         self.duration = duration
         self.cache = rcache
         self.ignore_cidr_list = ignore_cidr
-        self.ssl = ssl
-        self.session = requests.Session()
-        self.session.headers.update({'Authorization': 'Token ' + token})
+        self.bhr = bhr
 
     def is_ignore_addr(self,ip):
         try:
@@ -32,13 +27,12 @@ class BHRHandler(StreamHandler):
             return True
 
     def emit(self, record):
-        logging.debug(record)
-        logging.debug(type(record.msg))
 
         msg = json.loads(record.msg)
 
         indicator = msg['src_ip']
         signature = msg['signature']
+        honeypot = msg['app']
 
         if signature != 'Connection to Honeypot':
             logger.debug('Non-initial connection signature: {} ; skipping!'.format(signature))
@@ -48,14 +42,13 @@ class BHRHandler(StreamHandler):
             return
         elif self.is_ignore_addr(indicator):
             logger.debug('Indicator {} is on ignore list; skipping'.format(indicator))
+            return
 
-        data = {"cidr": indicator,
-                "source": self.source,
-                "why": self.reason,
-                "duration": self.duration}
-        logging.debug('Submitting BHR block: {0}'.format(data))
+        logger.debug('Submitting BHR block: {}'.format(indicator))
         try:
-            self.session.post(self.url, data=json.dumps(data), verify=self.ssl)
-            logging.info('BHR block submitted for indicator: {}'.format(indicator))
+            r = self.bhr.block(cidr=indicator, source=self.source, why=honeypot, duration=self.duration)
+            logger.info('BHR block submitted for indicator: {}'.format(indicator))
+            logger.debug('BHR submission result: {}'.format(r))
+            self.cache.setcache(indicator)
         except Exception as e:
-            logging.error('Error submitting BHR block: {0}'.format(repr(e)))
+            logger.error('Error submitting BHR block: {0}'.format(repr(e)))

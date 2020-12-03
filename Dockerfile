@@ -9,7 +9,6 @@ LABEL description="Small App for reading from hpfeeds broker and writing output 
 LABEL authoritative-source-url="https://github.com/CommunityHoneyNetwork/hpfeeds-output"
 LABEL changelog-url="https://github.com/CommunityHoneyNetwork/hpfeeds-output/commits/master"
 
-ENV playbook "hpfeeds-output.yml"
 ENV DEBIAN_FRONTEND "noninteractive"
 
 RUN apt-get update \
@@ -28,6 +27,8 @@ RUN python3 -m pip install --upgrade pip setuptools wheel \
 COPY hpfeeds-output /opt/hpfeeds-output
 COPY scripts /opt/scripts
 COPY entrypoint.sh /opt/entrypoint.sh
-RUN mkdir /data
+RUN useradd -d /opt -s /bin/bash hpfeeds-output
+RUN mkdir /data && chown -R hpfeeds-output /data
+USER hpfeeds-output
 ENV PYTHONPATH="/opt/hpfeeds-output"
 ENTRYPOINT ["/opt/entrypoint.sh"]

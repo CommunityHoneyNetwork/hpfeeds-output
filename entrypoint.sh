@@ -11,7 +11,7 @@ set -o pipefail
 
 main () {
   python3 /opt/scripts/build_config.py
-  python3 /opt/hpfeeds-output/bin/hpfeeds-output.py /opt/hpfeeds-output/output.json
+  python3 /opt/hpfeeds-output/bin/hpfeeds-output.py /data/output.json
 }
 
 main "$@"

@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import StreamHandler
 from IPy import IP
 
-logger = logging.getLogger('__main__')
+logger = logging.getLogger('hpfeeds-output')
 
 class CIFv3Handler(StreamHandler):
 
@@ -37,8 +37,6 @@ class CIFv3Handler(StreamHandler):
             return True
 
     def emit(self, record):
-        logger.debug(record)
-        logger.debug(type(record.msg))
 
         msg = json.loads(record.msg)
 
@@ -46,13 +44,14 @@ class CIFv3Handler(StreamHandler):
         signature = msg['signature']
 
         if signature != 'Connection to Honeypot':
-            logger.debug('Non-initial connection signature: {} ; skipping!'.format(signature))
+            logger.info('Non-initial connection signature: {} ; skipping!'.format(signature))
             return
         elif self.cache.iscached(indicator):
-            logger.debug('Indicator {} is cached; skipping'.format(indicator))
+            logger.info('Indicator {} is cached; skipping'.format(indicator))
             return
         elif self.is_ignore_addr(indicator):
-            logger.debug('Indicator {} is on ignore list; skipping'.format(indicator))
+            logger.info('Indicator {} is on ignore list; skipping'.format(indicator))
+            return
 
         app = msg['app']
         msg_tags = []
@@ -69,8 +68,10 @@ class CIFv3Handler(StreamHandler):
         logger.debug('Submitting indicator: {0}'.format(data))
 
         try:
-            self.session.post(self.url, data=json.dumps(data))
+            r = self.session.post(self.url, data=json.dumps(data))
             logger.info('Indicator submitted: {}'.format(indicator))
+            logger.debug('Result from submission: {}'.format(r))
+            self.cache.setcache(indicator)
         except Exception as e:
             logger.error('Error submitting indicator: {0}'.format(repr(e)))
 

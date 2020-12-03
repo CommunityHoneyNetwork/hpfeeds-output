@@ -1,7 +1,9 @@
-GeoIP==1.3.2
+GeoIP
 pymongo
 poetry
 cifsdk>=3.0.0,<4.0
 IPy
 redis
 validators
+bhr-client
+click

@@ -37,7 +37,6 @@
         "bhr_host": "http://bhr",
         "bhr_token": "token",
         "bhr_source": "chn",
-        "bhr_reason": "honeypot block",
         "bhr_duration": 3600,
         "bhr_ignore_cidr": "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12",
         "bhr_verify_ssl": false

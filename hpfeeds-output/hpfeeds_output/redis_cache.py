@@ -1,7 +1,7 @@
 import redis
 import logging
 
-logger = logging.getLogger('__main__')
+logger = logging.getLogger('hpfeeds-output')
 
 class RedisCache(object):
     """

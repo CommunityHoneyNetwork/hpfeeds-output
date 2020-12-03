@@ -1,4 +1,9 @@
-#TODO: Convert to a logging.Formatter subclass
+import logging
 
-def format(message):
-    return message.decode('utf-8')
+logger = logging.getLogger('hpfeeds-output')
+
+class RawJsonFormatter(logging.Formatter):
+
+    def format(self, record):
+        return record.msg
+

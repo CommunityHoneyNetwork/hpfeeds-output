@@ -10,12 +10,13 @@ from hpfeeds_output.handlers import cif_handler, bhr_handler
 from hpfeeds_output.formatters import splunk, arcsight, json_formatter, raw_json
 from hpfeeds_output import processors
 from hpfeeds_output import redis_cache
+from bhr_client.rest import login as bhr_login
 
 FORMATTERS = {
     'splunk': splunk.SplunkFormatter,
-    'arcsight': arcsight.format,
-    'json': json_formatter.format,
-    'raw_json': raw_json.format
+    'arcsight': arcsight.ArcsightFormatter,
+    'json': json_formatter.JSONFormatter,
+    'raw_json': raw_json.RawJsonFormatter
 }
 
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(name)s[%(lineno)s][%(filename)s] - %(message)s'
@@ -76,35 +77,36 @@ def main():
 
     try:
         if config['filelog'] and config['filelog']['filelog_enabled']:
-            logfile = config['filelog']['log_file']
+            fileconfig = config['filelog']
+            logfile = fileconfig['log_file']
 
-            if config['filelog']['rotation_backups']:
-                backups = int(config['filelog']['rotation_backups'])
+            if fileconfig['rotation_backups']:
+                backups = int(fileconfig['rotation_backups'])
             else:
                 backups = 3
 
-            if config['filelog']['rotation_strategy'] == 'size':
-                max_byt = int(config['filelog']['rotation_size_max']) * 1024 * 1024
+            if fileconfig['rotation_strategy'] == 'size':
+                max_byt = int(fileconfig['rotation_size_max']) * 1024 * 1024
                 handler = RotatingFileHandler(logfile, maxBytes=max_byt, backupCount=backups)
-            elif config['filelog']['rotation_strategy'] == 'time':
-                rotation_interval = int(config['filelog']['rotation_time_max'])
-                if config['filelog']['rotation_time_unit'] and \
-                    config['filelog']['rotation_time_unit'].lower() in ['d', 'h', 'm']:
-                    rotation_unit = config['filelog']['rotation_time_unit'].lower()
+            elif fileconfig['rotation_strategy'] == 'time':
+                rotation_interval = int(fileconfig['rotation_time_max'])
+                if fileconfig['rotation_time_unit'] and \
+                    fileconfig['rotation_time_unit'].lower() in ['d', 'h', 'm']:
+                    rotation_unit = fileconfig['rotation_time_unit'].lower()
                 else:
                     rotation_unit = 'h'
                     logger.warning('Could not interpret rotation_time_unit; defaulting to hour (h)')
                 handler = TimedRotatingFileHandler(logfile, when=rotation_unit,
                                                         interval=rotation_interval, backupCount=backups)
-            elif config['filelog']['rotation_strategy'] == 'none':
+            elif fileconfig['rotation_strategy'] == 'none':
                 handler = WatchedFileHandler(logfile, mode='a')
             else:
                 logger.warning('Invalid rotation_strategy! Defaulting to 100 MB size rotation!')
                 handler = RotatingFileHandler(logfile, maxBytes=104857600, backupCount=backups)
-            #TODO: handle multiple formatter formats
-            if config['formatter_name'] == 'splunk':
-                handler.setFormatter(splunk.SplunkFormatter())
+
+            handler.setFormatter(formatter())
             data_logger.addHandler(handler)
+
             logger.info('Writing events to file %s', logfile)
             logger.debug('data_logger currently: {}'.format(data_logger.__dict__))
     except Exception as e:
@@ -112,11 +114,13 @@ def main():
 
     try:
         if config['syslog'] and config['syslog']['syslog_enabled']:
-            syslog_host = config['syslog']['syslog_host'] or "localhost"
-            syslog_port = config['syslog']['syslog_port'] or 514
-            syslog_facility = config['syslog']['syslog_facility'] or "user"
+            syslogconfig = config['syslog']
+            syslog_host = syslogconfig['syslog_host'] or "localhost"
+            syslog_port = syslogconfig['syslog_port'] or 514
+            syslog_facility = syslogconfig['syslog_facility'] or "user"
             handler = SysLogHandler(address=(syslog_host, syslog_port), facility=syslog_facility)
-            handler.setFormatter(splunk.SplunkFormatter())
+            #TODO: enable different format for syslog v/s file
+            handler.setFormatter(formatter())
             data_logger.addHandler(handler)
             logger.info('Writing events to syslog host %s', syslog_host)
     except Exception:
@@ -128,42 +132,48 @@ def main():
     else:
         try:
             if config['cif'] and config['cif']['cif_enabled']:
-                cif_ignore_list = parse_ignore_cidr_option(config['cif']['cif_ignore_cidr'])
+                cifconfig = config['cif']
+                cif_ignore_list = parse_ignore_cidr_option(cifconfig['cif_ignore_cidr'])
                 cif_rcache = redis_cache.RedisCache(host='redis', port=6379, db=4, expire=300)
-                cif_host = config['cif']['cif_host']
-                cif_token = config['cif']['cif_token']
-                cif_provider = config['cif']['cif_provider']
-                cif_tlp = config['cif']['cif_tlp']
-                cif_confidence = config['cif']['cif_confidence']
-                cif_tags = config['cif']['cif_tags'].split(',')
-                cif_group = config['cif']['cif_group']
-                cif_verify_ssl = config['cif']['cif_verify_ssl']
+                cif_host = cifconfig['cif_host']
+                cif_token = cifconfig['cif_token']
+                cif_provider = cifconfig['cif_provider']
+                cif_tlp = cifconfig['cif_tlp']
+                cif_confidence = cifconfig['cif_confidence']
+                cif_tags = cifconfig['cif_tags'].split(',')
+                cif_group = cifconfig['cif_group']
+                cif_verify_ssl = cifconfig['cif_verify_ssl']
                 handler = cif_handler.CIFv3Handler(host=cif_host, token=cif_token, provider=cif_provider,
                                                    tlp=cif_tlp, confidence=cif_confidence, tags=cif_tags,
                                                    group=cif_group, rcache=cif_rcache,
                                                    ignore_cidr=cif_ignore_list, ssl=cif_verify_ssl)
                 data_logger.addHandler(handler)
                 logger.info('Writing events to CIFv3 host %s' % cif_host)
-        except:
-            logger.error("Invalid CIFv3 arguments")
+        except Exception as e:
+            logger.error("Invalid CIFv3 arguments: {}".format(e))
 
         try:
             if config['bhr'] and config['bhr']['bhr_enabled']:
-                bhr_ignore_list = parse_ignore_cidr_option(config['bhr']['bhr_ignore_cidr'])
+                bhrconfig = config['bhr']
+                bhr_ignore_list = parse_ignore_cidr_option(bhrconfig['bhr_ignore_cidr'])
                 bhr_rcache = redis_cache.RedisCache(host='redis', port=6379, db=5, expire=300)
-                bhr_host = config['bhr']['bhr_host']
-                bhr_token = config['bhr']['bhr_token']
-                bhr_source = config['bhr']['bhr_source']
-                bhr_reason = config['bhr']['bhr_reason']
-                bhr_duration = config['bhr']['bhr_duration']
-                bhr_verify_ssl = config['bhr']['bhr_verify_ssl']
-                handler = bhr_handler.BHRHandler(host=bhr_host, token=bhr_token, source=bhr_source, reason=bhr_reason,
-                                                 duration=bhr_duration, rcache=bhr_rcache, ignore_cidr=bhr_ignore_list,
-                                                 ssl=bhr_verify_ssl)
-                data_logger.addHandler(handler)
-                logger.info('Writing events to BHR host %s' % bhr_host)
-        except:
-            logger.error("Invalid BHR arguments")
+                bhr_host = bhrconfig['bhr_host']
+                bhr_token = bhrconfig['bhr_token']
+                bhr_source = bhrconfig['bhr_source']
+                bhr_duration = bhrconfig['bhr_duration']
+                bhr_verify_ssl = not bhrconfig['bhr_verify_ssl'] #yes, it's weird
+                try:
+                    bhr_client = bhr_login(host=bhr_host, token=bhr_token, ssl_no_verify=bhr_verify_ssl, timeout=30)
+                    handler = bhr_handler.BHRHandler(bhr_client, source=bhr_source,
+                                                     duration=bhr_duration, rcache=bhr_rcache,
+                                                     ignore_cidr=bhr_ignore_list)
+                    data_logger.addHandler(handler)
+                    logger.info('Writing events to BHR host %s' % bhr_host)
+
+                except Exception as e:
+                    logger.error('Ubable to log into BHR!: {}'.format(e))
+        except Exception as e:
+            logger.error("Invalid BHR arguments!: {}".format(e))
 
     try:
         hpc = hpfeeds.client.new(host, port, ident, secret)
@@ -179,7 +189,6 @@ def main():
             data_logger.info(payload.decode('utf8'))
         else:
             for msg in processor.process(identifier, channel, payload.decode('utf-8'), ignore_errors=True):
-                logger.debug('Message returned from procesor: {}'.format(msg))
                 data_logger.info(json.dumps(msg))
 
     def on_error(payload):

@@ -914,7 +914,8 @@ def honeydb_agent_events(identifier, payload):
         try:
             data = bytes.fromhex(dec.data).decode('utf8')
         except Exception as e:
-            logger.warning('Failed to hex-decode data in honeydb-agent log: data: {} exceptiom: {}'.format(dec.data,e))
+            logger.debug('Failed to hex-decode data in honeydb-agent log: data: {} exceptiom: {}'.format(dec.data,e))
+            data = dec.data
         base_message['data'] = data
 
     return base_message

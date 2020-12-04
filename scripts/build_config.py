@@ -110,7 +110,7 @@ def main():
 
     print("Writing config...")
 
-    with open("/data/output.json", 'w') as config_file:
+    with open("/data/config/output.json", 'w') as config_file:
         config_file.write(json.dumps(config))
 
     create_user(host=MONGODB_HOST, port=int(MONGODB_PORT), owner="chn",

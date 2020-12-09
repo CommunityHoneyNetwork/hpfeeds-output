@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND "noninteractive"
 
 RUN apt-get update \
   && apt-get upgrade -y \
-  && apt-get install --no-install-recommends -y gcc git python3-dev python3-pip libgeoip-dev \
+  && apt-get install --no-install-recommends -y gcc git python3-dev python3-pip libgeoip-dev sudo \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

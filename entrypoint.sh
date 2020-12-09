@@ -12,7 +12,7 @@ set -o pipefail
 main () {
   python3 /opt/scripts/build_config.py
   chown -R hpfeeds-output /data
-  sudo -u hpfeeds-output -E python3 /opt/hpfeeds-output/bin/hpfeeds-output.py /config/output.json
+  sudo -u hpfeeds-output PYTHONPATH="/opt/hpfeeds-output" python3 /opt/hpfeeds-output/bin/hpfeeds-output.py /config/output.json
 }
 
 main "$@"

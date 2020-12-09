@@ -29,5 +29,4 @@ COPY scripts /opt/scripts
 COPY entrypoint.sh /opt/entrypoint.sh
 RUN useradd -d /opt -s /bin/bash hpfeeds-output
 RUN mkdir -p /data/logs /config && chown -R hpfeeds-output /data /config
-ENV PYTHONPATH="/opt/hpfeeds-output"
 ENTRYPOINT ["/opt/entrypoint.sh"]
